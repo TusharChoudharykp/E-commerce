@@ -1,5 +1,6 @@
-const Product = require('../models/product');
+const connection = require('../connect');
 const express = require('express');
+const insertProduct = require('../models/product');
 const router = express.Router();
 
 // GET route
