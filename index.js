@@ -1,9 +1,16 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
-const insertProduct = require('./models/product'); 
+const {insertProduct} = require('./models/product');
+const {insertCategory, getCategories} = require('./models/category');
 const connection = require('./connect');
+const mysql2 = require('mysql2');
+
+//routes
 const productRouter = require('./routes/product');
+const categoryRouter = require('./routes/category'); 
+const orderRouter = require('./routes/order');
+const userRouter = require('./routes/user');
 
 const app = express();
 const PORT = 8000;
@@ -11,7 +18,9 @@ const PORT = 8000;
 // Middleware
 app.use(bodyParser.json());
 app.use(morgan('tiny'));
-app.use(`/products`, productRouter);
 
-// Start the server
+app.use(`/products`, productRouter);
+app.use(`/categories`, categoryRouter); 
+
+
 app.listen(PORT, () => console.log(`Server Started at PORT: ${PORT}`));
