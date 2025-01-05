@@ -1,90 +1,79 @@
 const connection = require('../connect'); 
 const express = require('express');
 const router = express.Router();
-const insertProduct = require('../models/product');
 
-// GET route to fetch products
+// GET all products
 router.get('/', (req, res) => {
-    const query = 'SELECT * FROM products'; 
-
-    connection.query(query, (err, results) => {
-        if (err) {
-            console.error('Error fetching products:', err);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(results); // Send the products as a JSON response
+    connection.query('SELECT * FROM products', (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results);
     });
 });
 
-// POST route to insert a product
+// GET product by ID
+router.get('/:id', (req, res) => {
+    connection.query('SELECT * FROM products WHERE id = ?', [req.params.id], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!results.length) return res.status(404).json({ message: 'Product not found' });
+        res.json(results[0]);
+    });
+});
+
+// POST create product
 router.post('/', (req, res) => {
-    const {
-        name = "",
-        description = "",
-        richDescription = "",
-        image = "",
-        brand = "",
-        price = 0,
-        category_id = "",
-        countInStock = "",
-        rating = 0,
-        numReviews = 0,
-        isFeatured = false,
-    } = req.body;
+    const { name, description, category_id, countInStock, ...rest } = req.body;
+    if (!name || !description || !category_id || countInStock === undefined)
+        return res.status(400).json({ error: 'Missing required fields' });
 
-    // Check if required fields are provided
-    if (!name || !description || !category_id || countInStock === undefined) {
-        return res.status(400).json({
-            error: 'Name, description, category_id, and countInStock are required.',
+    connection.query('SELECT id FROM categories WHERE id = ?', [category_id], (err, category) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!category.length) return res.status(400).json({ error: 'Invalid category_id' });
+
+        const query = 'INSERT INTO products SET ?';
+        const product = { name, description, category_id, countInStock, ...rest };
+        connection.query(query, product, (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.status(201).json({ message: 'Product created successfully', product });
         });
-    }
+    });
+});
 
-    // Check if the category_id exists in the categories table
-    const checkCategoryQuery = 'SELECT * FROM categories WHERE id = ?';
-    connection.query(checkCategoryQuery, [category_id], (err, results) => {
-        if (err) {
-            console.error('Error checking category:', err);
-            return res.status(500).json({ error: err.message });
-        }
+// PUT update product
+router.put('/:id', (req, res) => {
+    const { name, description, category_id, countInStock, ...rest } = req.body;
+    if (!name || !description || !category_id || countInStock === undefined)
+        return res.status(400).json({ error: 'Missing required fields' });
 
-        if (results.length === 0) {
-            return res.status(400).json({
-                error: 'Invalid category_id. Category does not exist.',
-            });
-        }
+    connection.query('SELECT id FROM categories WHERE id = ?', [category_id], (err, category) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!category.length) return res.status(400).json({ error: 'Invalid category_id' });
 
-        // Call the insertProduct function if category exists
-        insertProduct(
-            name,
-            description,
-            richDescription,
-            image,
-            brand,
-            price,
-            category_id,
-            countInStock,
-            rating,
-            numReviews,
-            isFeatured
-        );
-
-        // Respond to the client
-        res.status(201).json({
-            message: 'Product inserted successfully!',
-            product: {
-                name,
-                description,
-                richDescription,
-                image,
-                brand,
-                price,
-                category_id,
-                countInStock,
-                rating,
-                numReviews,
-                isFeatured,
-            },
+        const query = 'UPDATE products SET ? WHERE id = ?';
+        const product = { name, description, category_id, countInStock, ...rest };
+        connection.query(query, [product, req.params.id], (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (!results.affectedRows) return res.status(404).json({ message: 'Product not found' });
+            res.json({ message: 'Product updated successfully' });
         });
+    });
+});
+
+// DELETE product
+router.delete('/:id', (req, res) => {
+    connection.query('DELETE FROM products WHERE id = ?', [req.params.id], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!results.affectedRows) return res.status(404).json({ message: 'Product not found' });
+        res.json({ message: 'Product deleted successfully' });
+    });
+});
+
+// GET featured products
+router.get('/get/featured/:count', (req, res) => {
+    const count = parseInt(req.params.count) || 0;
+    connection.query('SELECT * FROM products WHERE isFeatured = true LIMIT ?', [count], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!results.length) return res.status(404).json({ message: 'No featured products found' });
+        res.json(results);
     });
 });
 
