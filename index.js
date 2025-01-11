@@ -1,33 +1,27 @@
 const express = require("express");
+const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
-const morgan = require("morgan");
-const { insertProduct } = require("./models/product");
-const { insertCategory, getCategories } = require("./models/category");
-const {
-  insertUser,
-  getUsers,
-  getUserById,
-  deleteUserById,
-  updateUserById,
-} = require("./models/user");
-const connection = require("./connect");
 const mysql2 = require("mysql2");
 
-//routes
-const productRouter = require("./routes/product");
-const categoryRouter = require("./routes/category");
-const orderRouter = require("./routes/order");
-const userRouter = require("./routes/user");
+const categoryRoutes = require("./routes/categoryRoutes");
+const productRoutes = require("./routes/productRoutes");
+const userRoutes = require("./routes/userRoutes");
+
+require("dotenv").config();
 
 const app = express();
 const PORT = 8000;
-
-// Middleware
 app.use(bodyParser.json());
-app.use(morgan("tiny"));
 
-app.use(`/products`, productRouter);
-app.use(`/categories`, categoryRouter);
-app.use(`/users`, userRouter);
+// Routes
+app.use("/api/categories", categoryRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/users", userRoutes);
 
-app.listen(PORT, () => console.log(`Server Started at PORT: ${PORT}`));
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send({ success: false, message: "Something broke!" });
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
