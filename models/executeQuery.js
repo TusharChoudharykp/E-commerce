@@ -1,4 +1,4 @@
-const connection = require("../config/db");
+const connection = require("../config/databaseconnection");
 
 const executeQuery = (query, params = []) =>
   new Promise((resolve, reject) => {
