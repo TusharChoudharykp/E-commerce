@@ -30,24 +30,44 @@ const createProductService = async (productData) => {
     isFeatured,
   } = productData;
 
+  // Log input for debugging
+  console.log("Creating product with data:", productData);
+
+  if (!name || !description || !price || !category_id) {
+    throw new Error(
+      "Missing required fields: name, description, price, or category_id."
+    );
+  }
+
   const query = `INSERT INTO products (name, description, richDescription, image, brand, price, category_id, countInStock, rating, numReviews, isFeatured)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-  const result = await executeQuery(query, [
-    name,
-    description,
-    richDescription || null,
-    image || null,
-    brand || null,
-    price,
-    category_id,
-    countInStock,
-    rating || null,
-    numReviews || 0,
-    isFeatured || 0,
-  ]);
+  try {
+    const result = await executeQuery(query, [
+      name,
+      description,
+      richDescription || null,
+      image || null,
+      brand || null,
+      price,
+      category_id,
+      countInStock,
+      rating || null,
+      numReviews || 0,
+      isFeatured || 0,
+    ]);
 
-  return result;
+    // Check if the insert was successful
+    if (result && result.insertId) {
+      console.log("Product created successfully with ID:", result.insertId);
+      return result;
+    } else {
+      throw new Error("Failed to create product.");
+    }
+  } catch (error) {
+    console.error("Error creating product:", error.message);
+    throw error;
+  }
 };
 
 // Update product
@@ -93,24 +113,15 @@ const deleteProductService = async (id) => {
   return result;
 };
 
-// Get featured products with a limit
-const getFeaturedProductsService = async (count) => {
-  const query = "SELECT * FROM products WHERE isFeatured = true LIMIT ?";
-  const products = await executeQuery(query, [count]);
-  return products;
-};
-
-// Get product count
-const getProductCountService = async () => {
-  const query = "SELECT COUNT(*) AS count FROM products";
-  const result = await executeQuery(query);
-  return result[0].count;
-};
-
 // Search products
 const searchProductsService = async (searchTerm) => {
   const query = `SELECT id, name, description, price, image FROM products WHERE name LIKE ? OR description LIKE ?`;
   const searchQuery = `%${searchTerm}%`;
+
+  if (!searchTerm || searchTerm.trim().length === 0) {
+    throw new Error("Search term is required");
+  }
+
   const products = await executeQuery(query, [searchQuery, searchQuery]);
   return products;
 };
@@ -121,7 +132,5 @@ module.exports = {
   createProductService,
   updateProductService,
   deleteProductService,
-  getFeaturedProductsService,
-  getProductCountService,
   searchProductsService,
 };

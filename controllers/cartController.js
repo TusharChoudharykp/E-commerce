@@ -3,7 +3,6 @@ const {
   addToCartService,
   updateCartItemService,
   removeCartItemService,
-  clearCartService,
 } = require("../services/cartService");
 
 // Get all cart items for a user
@@ -69,24 +68,9 @@ const removeCartItem = async (req, res) => {
   }
 };
 
-// Clear entire cart for a user
-const clearCart = async (req, res) => {
-  try {
-    const result = await clearCartService(req.params.userId);
-    if (!result.affectedRows)
-      return res.status(404).json({ message: "No items found in cart" });
-    res
-      .status(200)
-      .json({ success: true, message: "Cart cleared successfully" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to clear cart" });
-  }
-};
-
 module.exports = {
   getCartItems,
   addToCart,
   updateCartItem,
   removeCartItem,
-  clearCart,
 };

@@ -4,10 +4,11 @@ const {
   createProductService,
   updateProductService,
   deleteProductService,
-  getFeaturedProductsService,
-  getProductCountService,
   searchProductsService,
 } = require("../services/productServices");
+
+// Helper function to check if the user is an admin
+const isAdmin = (user) => user.role === "admin";
 
 // Get all products
 const getAllProducts = async (req, res) => {
@@ -25,35 +26,58 @@ const getAllProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const product = await getProductByIdService(req.params.id);
-    if (!product.length)
+    if (!product.length) {
       return res.status(404).json({ message: "Product not found" });
+    }
     res.status(200).json({ success: true, product: product[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error fetching product" });
   }
 };
 
-// Create product
+// Create product (Admin only)
 const createProduct = async (req, res) => {
+  console.log("User data:", req.user); // Log user data for debugging purposes
+
   try {
+    // Check if the user is an admin
+    if (!isAdmin(req.user)) {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
     const result = await createProductService(req.body);
-    res.status(201).json({
-      success: true,
-      product: { id: result.insertId, ...req.body },
-    });
+
+    if (result && result.insertId) {
+      res.status(201).json({
+        success: true,
+        product: { id: result.insertId, ...req.body },
+      });
+    } else {
+      res
+        .status(500)
+        .json({ success: false, message: "Product creation failed" });
+    }
   } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to create product" });
+    console.error("Error creating product:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create product",
+      error: err.message,
+    });
   }
 };
 
-// Update product
+// Update product (Admin only)
 const updateProduct = async (req, res) => {
   try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
     const result = await updateProductService(req.params.id, req.body);
-    if (!result.affectedRows)
+    if (!result.affectedRows) {
       return res.status(404).json({ message: "Product not found" });
+    }
     res
       .status(200)
       .json({ success: true, message: "Product updated successfully" });
@@ -64,12 +88,17 @@ const updateProduct = async (req, res) => {
   }
 };
 
-// Delete product
+// Delete product (Admin only)
 const deleteProduct = async (req, res) => {
   try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
     const result = await deleteProductService(req.params.id);
-    if (!result.affectedRows)
+    if (!result.affectedRows) {
       return res.status(404).json({ message: "Product not found" });
+    }
     res
       .status(200)
       .json({ success: true, message: "Product deleted successfully" });
@@ -77,33 +106,6 @@ const deleteProduct = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to delete product" });
-  }
-};
-
-// Get featured products
-const getFeaturedProducts = async (req, res) => {
-  try {
-    const count = parseInt(req.params.count) || 0;
-    const products = await getFeaturedProductsService(count);
-    if (!products.length)
-      return res.status(404).json({ message: "No featured products found" });
-    res.status(200).json({ success: true, products });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch featured products" });
-  }
-};
-
-// Get product count
-const getProductCount = async (req, res) => {
-  try {
-    const count = await getProductCountService();
-    res.status(200).json({ success: true, count });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch product count" });
   }
 };
 
@@ -137,18 +139,23 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-  getFeaturedProducts,
-  getProductCount,
   searchProducts,
 };
 
-// const executeQuery = require("../models/executeQuery");
+// const {
+//   getAllProductsService,
+//   getProductByIdService,
+//   createProductService,
+//   updateProductService,
+//   deleteProductService,
+//   searchProductsService,
+// } = require("../services/productServices");
 
 // // Get all products
 // const getAllProducts = async (req, res) => {
 //   try {
-//     const products = await executeQuery("SELECT * FROM products");
-//     res.status(200).json(products);
+//     const products = await getAllProductsService();
+//     res.status(200).json({ success: true, products });
 //   } catch (err) {
 //     res
 //       .status(500)
@@ -159,12 +166,10 @@ module.exports = {
 // // Get product by id
 // const getProductById = async (req, res) => {
 //   try {
-//     const product = await executeQuery("SELECT * FROM products WHERE id = ?", [
-//       req.params.id,
-//     ]);
+//     const product = await getProductByIdService(req.params.id);
 //     if (!product.length)
 //       return res.status(404).json({ message: "Product not found" });
-//     res.status(200).json(product[0]);
+//     res.status(200).json({ success: true, product: product[0] });
 //   } catch (err) {
 //     res.status(500).json({ success: false, message: "Error fetching product" });
 //   }
@@ -172,75 +177,11 @@ module.exports = {
 
 // // Create product
 // const createProduct = async (req, res) => {
-//   const {
-//     name,
-//     description,
-//     richDescription,
-//     image,
-//     brand,
-//     price,
-//     category_id,
-//     countInStock,
-//     rating,
-//     numReviews,
-//     isFeatured,
-//   } = req.body;
-
-//   if (
-//     !name ||
-//     !description ||
-//     !category_id ||
-//     countInStock === undefined ||
-//     price === undefined
-//   ) {
-//     return res
-//       .status(400)
-//       .json({ success: false, message: "Missing required fields" });
-//   }
-
 //   try {
-//     // Check if category exists
-//     const category = await executeQuery(
-//       "SELECT id FROM categories WHERE id = ?",
-//       [category_id]
-//     );
-//     if (!category.length)
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Invalid category_id" });
-
-//     const query = `INSERT INTO products (name, description, richDescription, image, brand, price, category_id, countInStock, rating, numReviews, isFeatured)
-//                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-//     const result = await executeQuery(query, [
-//       name,
-//       description,
-//       richDescription || null,
-//       image || null,
-//       brand || null,
-//       price,
-//       category_id,
-//       countInStock,
-//       rating || null,
-//       numReviews || 0,
-//       isFeatured || 0,
-//     ]);
-
+//     const result = await createProductService(req.body);
 //     res.status(201).json({
 //       success: true,
-//       product: {
-//         id: result.insertId,
-//         name,
-//         description,
-//         richDescription,
-//         image,
-//         brand,
-//         price,
-//         category_id,
-//         countInStock,
-//         rating,
-//         numReviews,
-//         isFeatured,
-//       },
+//       product: { id: result.insertId, ...req.body },
 //     });
 //   } catch (err) {
 //     res
@@ -251,62 +192,10 @@ module.exports = {
 
 // // Update product
 // const updateProduct = async (req, res) => {
-//   const {
-//     name,
-//     description,
-//     richDescription,
-//     image,
-//     brand,
-//     price,
-//     category_id,
-//     countInStock,
-//     rating,
-//     numReviews,
-//     isFeatured,
-//   } = req.body;
-
-//   if (
-//     !name ||
-//     !description ||
-//     !category_id ||
-//     countInStock === undefined ||
-//     price === undefined
-//   ) {
-//     return res
-//       .status(400)
-//       .json({ success: false, message: "Missing required fields" });
-//   }
-
 //   try {
-//     // Check if category exists
-//     const category = await executeQuery(
-//       "SELECT id FROM categories WHERE id = ?",
-//       [category_id]
-//     );
-//     if (!category.length)
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Invalid category_id" });
-
-//     const query = `UPDATE products SET name = ?, description = ?, richDescription = ?, image = ?, brand = ?, price = ?, category_id = ?, countInStock = ?, rating = ?, numReviews = ?, isFeatured = ? WHERE id = ?`;
-//     const result = await executeQuery(query, [
-//       name,
-//       description,
-//       richDescription || null,
-//       image || null,
-//       brand || null,
-//       price,
-//       category_id,
-//       countInStock,
-//       rating || null,
-//       numReviews || 0,
-//       isFeatured || 0,
-//       req.params.id,
-//     ]);
-
+//     const result = await updateProductService(req.params.id, req.body);
 //     if (!result.affectedRows)
 //       return res.status(404).json({ message: "Product not found" });
-
 //     res
 //       .status(200)
 //       .json({ success: true, message: "Product updated successfully" });
@@ -320,12 +209,9 @@ module.exports = {
 // // Delete product
 // const deleteProduct = async (req, res) => {
 //   try {
-//     const result = await executeQuery("DELETE FROM products WHERE id = ?", [
-//       req.params.id,
-//     ]);
+//     const result = await deleteProductService(req.params.id);
 //     if (!result.affectedRows)
 //       return res.status(404).json({ message: "Product not found" });
-
 //     res
 //       .status(200)
 //       .json({ success: true, message: "Product deleted successfully" });
@@ -336,67 +222,27 @@ module.exports = {
 //   }
 // };
 
-// // Get featured products
-// const getFeaturedProducts = async (req, res) => {
-//   const count = parseInt(req.params.count) || 0;
-//   try {
-//     const products = await executeQuery(
-//       "SELECT * FROM products WHERE isFeatured = true LIMIT ?",
-//       [count]
-//     );
-//     if (!products.length)
-//       return res.status(404).json({ message: "No featured products found" });
-//     res.status(200).json(products);
-//   } catch (err) {
-//     res
-//       .status(500)
-//       .json({ success: false, message: "Failed to fetch featured products" });
-//   }
-// };
-
-// // Get product count
-// const getProductCount = async (req, res) => {
-//   try {
-//     const result = await executeQuery("SELECT COUNT(*) AS count FROM products");
-//     res.status(200).json({ success: true, count: result[0].count });
-//   } catch (err) {
-//     res
-//       .status(500)
-//       .json({ success: false, message: "Failed to fetch product count" });
-//   }
-// };
-
-// // Search for products
-// const searchProductByName = async (req, res) => {
-//   const { name } = req.query;
-
-//   if (!name) {
+// // Search products
+// const searchProducts = async (req, res) => {
+//   const { searchTerm } = req.query;
+//   if (!searchTerm) {
 //     return res
 //       .status(400)
-//       .json({ success: false, message: "Product name is required" });
+//       .json({ success: false, message: "Search term is required" });
 //   }
 
 //   try {
-//     console.log("Searching for product with name:", name);
-
-//     const query = `
-//       SELECT * FROM products
-//     //   WHERE LOWER(name) = LOWER(?)
-//     // `;
-//     const product = await executeQuery(query, [name.trim()]);
-
-//     if (!product.length) {
-//       return res.status(404).json({ message: "Product not found" });
+//     const products = await searchProductsService(searchTerm);
+//     if (!products.length) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "No products found" });
 //     }
-
-//     res.status(200).json({ success: true, product: product[0] });
+//     res.status(200).json({ success: true, products });
 //   } catch (err) {
-//     console.error("Error fetching product:", err);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to fetch product",
-//       error: err.message,
-//     });
+//     res
+//       .status(500)
+//       .json({ success: false, message: "Failed to search products" });
 //   }
 // };
 
@@ -406,7 +252,5 @@ module.exports = {
 //   createProduct,
 //   updateProduct,
 //   deleteProduct,
-//   getFeaturedProducts,
-//   getProductCount,
-//   searchProductByName,
+//   searchProducts,
 // };

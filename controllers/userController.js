@@ -1,4 +1,18 @@
 const userService = require("../services/userService");
+const {
+  registerUserSchema,
+  loginUserSchema,
+  updateUserSchema,
+} = require("../validators/userValidator");
+const Joi = require("joi");
+
+// Helper function for Joi validation
+const validate = (schema, data) => {
+  const { error } = schema.validate(data);
+  if (error) {
+    throw new Error(error.details[0].message);
+  }
+};
 
 // Get all users
 const getAllUsers = async (req, res) => {
@@ -6,10 +20,7 @@ const getAllUsers = async (req, res) => {
     const users = await userService.getAllUsers();
     res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch users",
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch users" });
   }
 };
 
@@ -22,31 +33,29 @@ const getUserById = async (req, res) => {
 
     res.status(200).json(user[0]);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching user",
-    });
+    res.status(500).json({ success: false, message: "Error fetching user" });
   }
 };
 
 // Register a new user
 const registerUser = async (req, res) => {
   try {
+    validate(registerUserSchema, req.body);
+
     const result = await userService.registerUser(req.body);
     res
       .status(201)
       .json({ success: true, user: { id: result.insertId, ...req.body } });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to register user",
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // User login
 const loginUser = async (req, res) => {
   try {
+    validate(loginUserSchema, req.body);
+
     const { email, token } = await userService.loginUser(
       req.body.email,
       req.body.password
@@ -60,6 +69,8 @@ const loginUser = async (req, res) => {
 // Update user
 const updateUser = async (req, res) => {
   try {
+    validate(updateUserSchema, req.body);
+
     const result = await userService.updateUser(req.params.id, req.body);
     if (!result.affectedRows)
       return res.status(404).json({ message: "User not found" });
@@ -68,10 +79,7 @@ const updateUser = async (req, res) => {
       .status(200)
       .json({ success: true, message: "User updated successfully" });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to update user",
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -86,10 +94,7 @@ const deleteUser = async (req, res) => {
       .status(200)
       .json({ success: true, message: "User deleted successfully" });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete user",
-    });
+    res.status(500).json({ success: false, message: "Failed to delete user" });
   }
 };
 
@@ -99,10 +104,9 @@ const getUserCount = async (req, res) => {
     const result = await userService.getUserCount();
     res.status(200).json({ success: true, userCount: result[0].userCount });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch user count",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch user count" });
   }
 };
 

@@ -1,7 +1,6 @@
 const {
   placeOrderService,
   getUserOrdersService,
-  getOrderByIdService,
 } = require("../services/orderService");
 
 // Place an order

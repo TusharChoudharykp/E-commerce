@@ -54,17 +54,9 @@ const removeCartItemService = async (id) => {
   return result;
 };
 
-// Clear entire cart for a user
-const clearCartService = async (userId) => {
-  const query = `DELETE FROM cart WHERE user_id = ?`;
-  const result = await executeQuery(query, [userId]);
-  return result;
-};
-
 module.exports = {
   getCartItemsService,
   addToCartService,
   updateCartItemService,
   removeCartItemService,
-  clearCartService,
 };

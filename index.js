@@ -1,26 +1,16 @@
 const express = require("express");
-const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
-const mysql2 = require("mysql2");
+require("./config/databaseconnection");
 
-const categoryRoutes = require("./routes/categoryRoutes");
-const productRoutes = require("./routes/productRoutes");
-const userRoutes = require("./routes/userRoutes");
-const cartRoutes = require("./routes/cartRoutes");
-const orderRoutes = require("./routes/orderRoutes");
-const popularProductRoutes = require("./routes/popularProductRoutes");
+const routes = require("./routes/index");
 
 const app = express();
 const PORT = 8000;
+
 app.use(bodyParser.json());
 
 // Routes
-app.use("/api/categories", categoryRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api", popularProductRoutes);
+app.use("/api", routes);
 
 // Error handler
 app.use((err, req, res, next) => {
