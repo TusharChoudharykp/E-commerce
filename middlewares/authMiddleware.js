@@ -5,7 +5,7 @@ const authenticateJWT = (req, res, next) => {
 
   if (!token) {
     return res
-      .status(403)
+      .status(401)
       .json({ message: "Access denied. No token provided." });
   }
 
@@ -16,7 +16,7 @@ const authenticateJWT = (req, res, next) => {
   // Verify the token
   jwt.verify(tokenWithoutBearer, process.env.secret, (err, user) => {
     if (err) {
-      return res.status(403).json({ message: "Access denied. Invalid token." });
+      return res.status(401).json({ message: "Access denied. Invalid token." });
     }
 
     req.user = user;
