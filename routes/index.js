@@ -8,6 +8,7 @@ const cartRoutes = require("./cartRoutes");
 const orderRoutes = require("./orderRoutes");
 const popularProductRoutes = require("./popularProductRoutes");
 const sellerRoutes = require("./sellerRoutes");
+const homeRoutes = require("./homeRoutes");
 
 router.use("/categories", categoryRoutes);
 router.use("/products", productRoutes);
@@ -16,5 +17,6 @@ router.use("/cart", cartRoutes);
 router.use("/orders", orderRoutes);
 router.use("/popular", popularProductRoutes);
 router.use("/sellers", sellerRoutes);
+router.use("/api/home", homeRoutes);
 
 module.exports = router;
